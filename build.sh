@@ -1,3 +1,8 @@
+#!/bin/sh
+set -ex
+
+rm -rf ./DerivedData
+
 xcodebuild -project AppleLocalization/AppleLocalization.xcodeproj \
    -scheme AppleLocalization \
    -derivedDataPath ./DerivedData \
