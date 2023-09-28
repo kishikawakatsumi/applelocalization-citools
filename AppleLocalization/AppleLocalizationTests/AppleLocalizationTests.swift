@@ -5,10 +5,10 @@ import AppleArchive
 import System
 import os
 
+let logger = Logger(subsystem: "com.kishikawakatsumi.AppleLocalizationTool", category: "main")
+
 class AppleLocalizationTests: XCTestCase {
   func test() async throws {
-    let logger = Logger(subsystem: "com.kishikawakatsumi.AppleLocalizationTool", category: "main")
-
     var counter = 1
 
     let fileManager = FileManager()
@@ -32,7 +32,10 @@ class AppleLocalizationTests: XCTestCase {
     }
 
     for localizable in localizables {
-      guard let bundle = Bundle(path: localizable.bundlePath) else { fatalError() }
+      guard let bundle = Bundle(path: localizable.bundlePath) else {
+        logger.log("Invalid bundlePath.")
+        fatalError()
+      }
 
       if let loctablePath = localizable.loctablePath {
         let fileUrl = URL(fileURLWithPath: loctablePath)
@@ -212,11 +215,11 @@ func collectLocalizables(root: AbsolutePath) throws -> OrderedSet<Localizable> {
         } else if let _ = Bundle(url: file.parentDirectory.parentDirectory.parentDirectory.asURL) {
           bundlePath = file.parentDirectory.parentDirectory.parentDirectory
         } else {
-          print(file)
+          logger.log("\(file)")
           fatalError()
         }
       } else {
-        print(file)
+        logger.log("\(file)")
         fatalError()
       }
 
