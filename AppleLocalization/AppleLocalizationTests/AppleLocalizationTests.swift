@@ -32,75 +32,77 @@ class AppleLocalizationTests: XCTestCase {
     }
 
     for localizable in localizables {
-      guard let bundle = Bundle(path: localizable.bundlePath) else {
-        logger.log("Invalid bundlePath.")
-        fatalError()
-      }
+      autoreleasepool {
+        guard let bundle = Bundle(path: localizable.bundlePath) else {
+          logger.log("Invalid bundlePath.")
+          fatalError()
+        }
 
-      if let loctablePath = localizable.loctablePath {
-        let fileUrl = URL(fileURLWithPath: loctablePath)
+        if let loctablePath = localizable.loctablePath {
+          let fileUrl = URL(fileURLWithPath: loctablePath)
 
-        if let dictionary = NSMutableDictionary(contentsOf: fileUrl) {
-          dictionary.removeObject(forKey: "LocProvenance")
+          if let dictionary = NSMutableDictionary(contentsOf: fileUrl) {
+            dictionary.removeObject(forKey: "LocProvenance")
 
-          if let plist = dictionary as? [String: [String: Any]] {
-            for (localization, value) in plist {
-              for (key, target) in value {
-                let localized: String
-                if let target = target as? [String: Any], let data = try? JSONSerialization.data(withJSONObject: target) {
-                  localized = String(decoding: data, as: UTF8.self)
-                } else {
-                  localized = "\(target)"
-                }
-                if var localizations = localizable.localizations[key] {
-                  localizations.append(Localization(language: localization, target: localized, filename: fileUrl.lastPathComponent))
-                  localizable.localizations[key] = localizations
-                } else {
-                  var localizations = [Localization]()
-                  localizations.append(Localization(language: localization, target: localized, filename: fileUrl.lastPathComponent))
-                  localizable.localizations[key] = localizations
+            if let plist = dictionary as? [String: [String: Any]] {
+              for (localization, value) in plist {
+                for (key, target) in value {
+                  let localized: String
+                  if let target = target as? [String: Any], let data = try? JSONSerialization.data(withJSONObject: target) {
+                    localized = String(decoding: data, as: UTF8.self)
+                  } else {
+                    localized = "\(target)"
+                  }
+                  if var localizations = localizable.localizations[key] {
+                    localizations.append(Localization(language: localization, target: localized, filename: fileUrl.lastPathComponent))
+                    localizable.localizations[key] = localizations
+                  } else {
+                    var localizations = [Localization]()
+                    localizations.append(Localization(language: localization, target: localized, filename: fileUrl.lastPathComponent))
+                    localizable.localizations[key] = localizations
+                  }
                 }
               }
             }
           }
         }
-      }
 
-      for localization in bundle.localizations {
-        guard let localizationDirectory = bundle.path(forResource: localization, ofType: "lproj") else {
-          continue
-        }
-        guard let localizedFiles = try? localFileSystem.getDirectoryContents(try AbsolutePath(validating: localizationDirectory)) else {
-          continue
-        }
-
-        for localizedFile in localizedFiles {
-          guard localizedFile.hasSuffix("strings") else {
+        for localization in bundle.localizations {
+          guard let localizationDirectory = bundle.path(forResource: localization, ofType: "lproj") else {
             continue
           }
-          let fileUrl = bundle.url(
-            forResource: localizedFile,
-            withExtension: nil,
-            subdirectory: nil,
-            localization: localization
-          )
-          guard let fileUrl = fileUrl, let data = try? Data(contentsOf: fileUrl) else {
+          guard let localizedFiles = try? localFileSystem.getDirectoryContents(try AbsolutePath(validating: localizationDirectory)) else {
             continue
           }
 
-          let decoder = PropertyListDecoder()
-          guard let plist = try? decoder.decode(Dictionary<String, String>.self, from: data) else {
-            continue
-          }
+          for localizedFile in localizedFiles {
+            guard localizedFile.hasSuffix("strings") else {
+              continue
+            }
+            let fileUrl = bundle.url(
+              forResource: localizedFile,
+              withExtension: nil,
+              subdirectory: nil,
+              localization: localization
+            )
+            guard let fileUrl = fileUrl, let data = try? Data(contentsOf: fileUrl) else {
+              continue
+            }
 
-          for (key, value) in plist {
-            if var localizations = localizable.localizations[key] {
-              localizations.append(Localization(language: localization, target: value, filename: fileUrl.lastPathComponent))
-              localizable.localizations[key] = localizations
-            } else {
-              var localizations = [Localization]()
-              localizations.append(Localization(language: localization, target: value, filename: fileUrl.lastPathComponent))
-              localizable.localizations[key] = localizations
+            let decoder = PropertyListDecoder()
+            guard let plist = try? decoder.decode(Dictionary<String, String>.self, from: data) else {
+              continue
+            }
+
+            for (key, value) in plist {
+              if var localizations = localizable.localizations[key] {
+                localizations.append(Localization(language: localization, target: value, filename: fileUrl.lastPathComponent))
+                localizable.localizations[key] = localizations
+              } else {
+                var localizations = [Localization]()
+                localizations.append(Localization(language: localization, target: value, filename: fileUrl.lastPathComponent))
+                localizable.localizations[key] = localizations
+              }
             }
           }
         }
@@ -277,3 +279,4 @@ struct Localization: Codable {
 }
 
 extension String: Error {}
+
